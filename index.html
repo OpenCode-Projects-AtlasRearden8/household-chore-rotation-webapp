@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Household Chore Rotation — local-first, no shame</title>
+<style>
+  :root {
+    --bg: #1d1a24;
+    --panel: #282433;
+    --panel2: #312c3e;
+    --text: #f0ece6;
+    --muted: #a89fb3;
+    --accent: #8ecae6;
+    --accent2: #ffcf8b;
+    --good: #9ee493;
+    --warn: #ffb4a2;
+    --border: #423a52;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 0 60px 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.45;
+  }
+  header {
+    padding: 18px 20px 6px; max-width: 900px; margin: 0 auto;
+  }
+  h1 { font-size: 1.35rem; margin: 0 0 2px; }
+  .subtitle { color: var(--muted); font-size: .92rem; margin: 0; }
+  nav.tabs {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    max-width: 900px; margin: 14px auto 0; padding: 0 20px;
+  }
+  nav.tabs button {
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 8px 16px; cursor: pointer; font-size: .9rem;
+  }
+  nav.tabs button.active {
+    background: var(--accent); color: #14202b; border-color: var(--accent);
+    font-weight: 600;
+  }
+  main { max-width: 900px; margin: 18px auto 0; padding: 0 20px; }
+  section.page { display: none; }
+  section.page.active { display: block; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 14px;
+  }
+  .card h2 { margin: 0 0 10px; font-size: 1.05rem; }
+  .muted { color: var(--muted); }
+  .small { font-size: .85rem; }
+  button.btn {
+    background: var(--panel2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 12px; cursor: pointer; font-size: .88rem;
+  }
+  button.btn:hover { border-color: var(--accent); }
+  button.btn.primary { background: var(--accent); color: #14203b; border-color: var(--accent); font-weight: 600; }
+  button.btn.praise { background: var(--good); color: #18381a; border-color: var(--good); font-weight: 600; }
+  button.btn.danger-soft { background: transparent; border-color: var(--warn); color: var(--warn); }
+  button.btn.tiny { padding: 3px 8px; font-size: .78rem; }
+  input, select {
+    background: var(--panel2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 8px; font-size: .9rem;
+  }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .chore-card {
+    background: var(--panel); border: 1px solid var(--border); border-left: 5px solid var(--accent);
+    border-radius: var(--radius); padding: 14px; margin-bottom: 12px;
+  }
+  .chore-card.done { border-left-color: var(--good); opacity: .75; }
+  .chore-card .who { font-size: 1.15rem; font-weight: 700; }
+  .pill {
+    display: inline-block; background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 999px; padding: 2px 10px; font-size: .78rem; color: var(--muted);
+  }
+  .pill.skill-2 { color: #e88; border-color: #7a4444; }
+  .pill.skill-1 { color: #d9a; border-color: #6b5a44; }
+  .pill.skill1 { color: #ae9; border-color: #4a5c44; }
+  .pill.skill2 { color: var(--accent); border-color: #3a5560; }
+  .kind { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: .82rem; }
+  .num { text-align: center; }
+  .hero-num { font-size: 2rem; font-weight: 800; color: var(--good); }
+  .wheel-wrap { display: flex; justify-content: center; padding: 8px 0; }
+  .log-entry { border-bottom: 1px solid var(--border); padding: 10px 0; }
+  .log-entry:last-child { border-bottom: none; }
+  .noshame-banner {
+    background: linear-gradient(120deg, #2d2a3f, #33403c);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 12px 16px; margin-bottom: 14px; color: var(--muted); font-size: .9rem;
+  }
+  .noshame-banner b { color: var(--accent2); }
+  .cover-glow { border-left: 5px solid var(--good) !important; }
+  .toast {
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+    background: var(--accent2); color: #3b2f14; padding: 10px 18px;
+    border-radius: 999px; font-weight: 600; opacity: 0; transition: opacity .25s;
+    pointer-events: none; z-index: 50; max-width: 90vw;
+  }
+  .toast.show { opacity: 1; }
+  ul.plain { list-style: none; margin: 0; padding: 0; }
+  ul.plain li { padding: 6px 0; border-bottom: 1px solid var(--border); }
+  ul.plain li:last-child { border-bottom: none; }
+  details summary { cursor: pointer; color: var(--muted); }
+  .flex-between { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+  textarea { background: var(--panel2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; font-size: .9rem; width: 100%; }
+  footer { max-width: 900px; margin: 30px auto 0; padding: 0 20px; color: var(--muted); font-size: .8rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>&#127973; Household Chore Rotation</h1>
+  <p class="subtitle">One wheel, whole household. Strengths count, trades count, skips are forgiven — and someone quiet deserves a thank-you.</p>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button data-page="week" class="active">This Week</button>
+  <button data-page="wheel">Rotation Wheel</button>
+  <button data-page="people">People &amp; Strengths</button>
+  <button data-page="skips">Skip Log</button>
+  <button data-page="review">Weekly Review</button>
+  <button data-page="settings">Setup</button>
+</nav>
+
+<main>
+  <!-- ================= THIS WEEK ================= -->
+  <section class="page active" id="page-week">
+    <div class="noshame-banner" id="week-banner"></div>
+    <div class="flex-between" style="margin-bottom:12px">
+      <div>
+        <span class="kind">Week <span id="week-number"></span></span>
+        <div class="small muted" id="week-dates"></div>
+      </div>
+      <div class="row">
+        <button class="btn" id="btn-prev-week">&#8592; Past week</button>
+        <button class="btn" id="btn-next-week">Future week &#8594;</button>
+        <button class="btn primary" id="btn-suggest-tweaks">&#9997;&#65039; Suggest strengths tweaks</button>
+      </div>
+    </div>
+    <div id="week-chores"></div>
+    <div class="card">
+      <h2>Trade a chore (&#8220;I did yours yesterday&#8221;)</h2>
+      <p class="small muted">Swapping with someone? Log it so the review gives you both credit. Both chores switch people.</p>
+      <div class="row">
+        <select id="trade-chore-a"></select>
+        <span class="muted">&#8644;</span>
+        <select id="trade-chore-b"></select>
+        <label class="small muted"><input type="checkbox" id="trade-yesterday"> we already traded (they did mine yesterday)</label>
+        <button class="btn primary" id="btn-trade">Log trade swap</button>
+      </div>
+      <div id="trade-history" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- ================= WHEEL ================= -->
+  <section class="page" id="page-wheel">
+    <div class="card">
+      <h2>The joint rotation wheel</h2>
+      <p class="small muted">Chores travel around the wheel one step per week, so everyone eventually gets everything. Two sizing options below; the wheel benefits most from strengths tweaks, so use them!</p>
+      <div class="row">
+        <button class="btn" id="btn-wheel-add">&plus; Add <span id="wheel-add-name">person</span> to wheel</button>
+        <button class="btn" id="btn-wheel-remove">&#8722; Remove last from wheel</button>
+        <span class="kind" id="wheel-order-label"></span>
+      </div>
+      <div class="wheel-wrap"><svg id="wheel-svg" width="440" height="440" viewBox="0 0 440 440" role="img" aria-label="Rotation wheel"></svg></div>
+      <div class="card" style="background:var(--panel2)">
+        <h3 style="margin:0 0 6px; font-size:.95rem">Next week preview</h3>
+        <div id="next-week-preview" class="small"></div>
+      </div>
+      <label class="row small muted" style="margin-top:8px">
+        <input type="checkbox" id="mode-strengths">
+        Start each week from strengths-based suggestions (instead of pure rotation)
+      </label>
+    </div>
+  </section>
+
+  <!-- ================= PEOPLE ================= -->
+  <section class="page" id="page-people">
+    <div class="card">
+      <h2>Household members</h2>
+      <p class="small muted">Nobody is &#8220;bad at chores&#8221; &#8212; everyone just has different strengths. Be honest; the suggestions get kinder when you are.</p>
+      <div class="row" id="add-person-row">
+        <input id="new-person-name" placeholder="New person's name" maxlength="30">
+        <button class="btn primary" id="btn-add-person">Add person</button>
+      </div>
+      <div id="people-list"></div>
+    </div>
+    <div class="card">
+      <h2>Chores</h2>
+      <div class="row" style="margin-bottom:10px">
+        <input id="new-chore-name" placeholder="New chore (e.g. Recycling &amp; bins)" maxlength="40">
+        <select id="new-chore-weight">
+          <option value="1">Quick (1)</option>
+          <option value="2" selected>Normal (2)</option>
+          <option value="3">Big job (3)</option>
+        </select>
+        <select id="new-chore-repeat">
+          <option value="1" selected>Every week</option>
+          <option value="2">Every 2nd week</option>
+          <option value="3">Every 3rd week</option>
+        </select>
+        <button class="btn primary" id="btn-add-chore">Add chore</button>
+      </div>
+      <ul class="plain" id="chores-list"></ul>
+    </div>
+  </section>
+
+  <!-- ================= SKIP LOG ================= -->
+  <section class="page" id="page-skips">
+    <div class="noshame-banner">
+      <b>This is a no-shame log.</b> Skipping happens to everyone &#8212; sick days, brain fog, life.
+      Log it, move on. We only ever surface this to say thank-you to the person who quietly covers.
+    </div>
+    <div class="card">
+      <h2>Log a skip (gently)</h2>
+      <div class="row">
+        <select id="skip-person"></select>
+        <select id="skip-chore"></select>
+        <input id="skip-note" placeholder="optional note, e.g. 'rough day'" maxlength="80">
+        <button class="btn danger-soft" id="btn-log-skip">Log skip</button>
+      </div>
+    </div>
+    <div class="card" id="open-skips-card">
+      <h2>Open skips</h2>
+      <div id="open-skips"></div>
+    </div>
+    <div class="card">
+      <h2>Who quietly covers &#128155;</h2>
+      <p class="small muted">People who have picked up someone else&#8217;s chores after a skip. Give them a hug and a break from asking.</p>
+      <div id="cover-list"></div>
+    </div>
+  </section>
+
+  <!-- ================= REVIEW ================= -->
+  <section class="page" id="page-review">
+    <div class="flex-between" style="margin-bottom:12px">
+      <h2 style="margin:0">Weekly review</h2>
+      <div class="row">
+        <select id="review-week"></select>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Team spirit check</h2>
+      <p class="small muted">This week&#8217;s balance, in kind numbers. Skips here are facts, not judgments.</p>
+      <table id="review-table"></table>
+    </div>
+    <div class="card">
+      <h2>Quiet heroes</h2>
+      <div id="review-heroes" class="small"></div>
+    </div>
+    <div class="card">
+      <h2>Notes for next week</h2>
+      <textarea id="review-notes" rows="3" placeholder="e.g. spare the person who covered twice; bathroom shuffle next week..."></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" id="btn-save-notes">Save note</button>
+        <button class="btn primary" id="btn-roll-week">&#127973; Roll to next week</button>
+      </div>
+      <p class="small muted" id="roll-hint"></p>
+    </div>
+  </section>
+
+  <!-- ================= SETTINGS ================= -->
+  <section class="page" id="page-settings">
+    <div class="card">
+      <h2>Backup &amp; reset</h2>
+      <p class="small muted">Everything lives in this browser&#8217;s localStorage &#8212; nothing leaves your device. Export a JSON backup now and then.</p>
+      <div class="row">
+        <button class="btn" id="btn-export">&#11138; Download backup</button>
+        <label class="btn" style="cursor:pointer">&#11138; Restore backup <input type="file" id="import-file" accept=".json" style="display:none"></label>
+        <button class="btn danger-soft" id="btn-reset">Reset everything</button>
+      </div>
+      <div id="storage-info" class="small muted" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <h2>How this works</h2>
+      <ul class="plain small muted">
+        <li><strong>Rotation wheel:</strong> chores step around the wheel week by week, so no one is stuck forever.</li>
+        <li><strong>Strengths:</strong> rate each person per chore; the suggestion engine nudges hard jobs toward people who find them easier, without freezing anyone out of the rotation.</li>
+        <li><strong>Trades:</strong> swap two chores between two people and log it, including &#8220;we already traded yesterday&#8221;</li>
+        <li><strong>Skips:</strong> log and forgive. Coverage is tracked with love.</li>
+        <li><strong>Review:</strong> a weekly kind-numbers page plus a note for next week.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+<footer>Household Chore Rotation &#8226; offline &amp; local-first &#8226; &#169; 2026 <strong>Asdale Dynamics, LLC</strong> &#8226; MIT License</footer>
+
+<script>
+'use strict';
+/*__CORE_START__*/
+/* ============================================================
+ * Pure math core — deterministic, no DOM. Tests import this.
+ * ============================================================ */
+
+function mod(n, m) { return ((n % m) + m) % m; }
+
+function makeId(prefix, seedCounter) {
+  var n = typeof seedCounter === 'number' ? seedCounter : Date.now() + Math.floor(Math.random() * 100000);
+  return prefix + '_' + n;
+}
+
+/** Simplified ISO date (YYYY-MM-DD) */
+function todayStr(now) {
+  var d = now ? new Date(now) : new Date();
+  var p = function (x) { return String(x).padStart(2, '0'); };
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+
+/** Monday-start date range label for a week index relative to state.weekStart (state week 0) */
+function weekLabel(weekIndex, weekStartStr) {
+  var start = new Date(weekStartStr + 'T00:00:00');
+  start.setDate(start.getDate() + weekIndex * 7);
+  var end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  var fmt = function (d) { return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); };
+  return fmt(start) + ' \u2013 ' + fmt(end);
+}
+
+/** Who holds choreIds[i] in wheel order, offset by weekIndex */
+function rotationAssignment(wheel, choreIds, weekIndex) {
+  var out = {};
+  for (var i = 0; i < choreIds.length; i++) {
+    out[choreIds[i]] = wheel[mod(weekIndex + i, wheel.length)];
+  }
+  return out;
+}
+
+function skillScore(person, choreId) {
+  if (!person || !person.skills) return 0;
+  var v = person.skills[choreId];
+  return typeof v === 'number' ? v : 0;
+}
+
+/**
+ * How many weeks (capped at 4) since `personId` did or skipped `choreId`,
+ * scanning the log backwards. Returns 4 if never in the visible window.
+ */
+function weeksSince(choreId, personId, log, weekIndex) {
+  var cap = 4;
+  for (var w = weekIndex - 1; w >= Math.max(0, weekIndex - 8); w--) {
+    for (var i = 0; i < log.length; i++) {
+      var e = log[i];
+      if (e.weekIndex === w && e.choreId === choreId &&
+          ((e.type === 'done' && e.personId === personId) ||
+           (e.type === 'cover' && e.personId === personId) ||
+           (e.type === 'skip' && e.personId === personId))) {
+        return Math.min(cap, weekIndex - w);
+      }
+    }
+  }
+  return cap;
+}
+
+/**
+ * Strengths-based weekly assignment.
+ * Chores (heaviest first) greedily pick the person with the best
+ * skill + recency score; people already assigned this week are
+ * deprioritized. wheel order breaks ties (deterministic).
+ */
+function strengthsAssignment(wheel, people, chores, weekIndex, log) {
+  var byId = {};
+  people.forEach(function (p) { byId[p.id] = p; });
+  var sorted = chores.slice().sort(function (a, b) {
+    var d = (b.weight || 1) - (a.weight || 1);
+    return d !== 0 ? d : 0;
+  });
+  var assigned = {};
+  var used = {};
+  sorted.forEach(function (chore) {
+    var best = null, bestScore = -Infinity;
+    for (var i = 0; i < wheel.length; i++) {
+      var pid = wheel[i];
+      var s = skillScore(byId[pid], chore.id) +
+              weeksSince(chore.id, pid, log, weekIndex) +
+              (used[pid] ? -2.5 : 0) +
+              (wheel.length - i) / (wheel.length * 100); /* tiny tiebreak: earlier in wheel */
+      if (s > bestScore) { bestScore = s; best = pid; }
+    }
+    assigned[chore.id] = best;
+    used[best] = true;
+  });
+  return assigned;
+}
+
+/** Total skill-weighted load of an assignment (for swap search) */
+function scoreAssignment(assignment, people, chores) {
+  var byId = {};
+  people.forEach(function (p) { byId[p.id] = p; });
+  var total = 0;
+  chores.forEach(function (c) {
+    total += skillScore(byId[assignment[c.id]], c.id) * (c.weight || 1);
+  });
+  return total;
+}
+
+/** Swap the assignees of two chores. Returns a NEW assignment. */
+function applyTrade(assignment, choreIdA, choreIdB) {
+  var out = {};
+  for (var k in assignment) { out[k] = assignment[k]; }
+  var tmp = out[choreIdA];
+  out[choreIdA] = out[choreIdB];
+  out[choreIdB] = tmp;
+  return out;
+}
+
+/** Trade record for the log */
+function makeTradeEntry(choreIdA, choreIdB, personA, personB, weekIndex, date, tradedYesterday) {
+  return {
+    id: makeId('tr'),
+    type: 'trade',
+    choreIdA: choreIdA, choreIdB: choreIdB,
+    personA: personA, personB: personB,
+    weekIndex: weekIndex, date: date || todayStr(),
+    tradedYesterday: !!tradedYesterday
+  };
+}
+
+/** Find the best two-chore swap that improves the skill score, or null. */
+function bestSkillSwap(assignment, people, chores) {
+  var ids = chores.map(function (c) { return c.id; });
+  var base = scoreAssignment(assignment, people, chores);
+  var best = null;
+  for (var i = 0; i < ids.length; i++) {
+    for (var j = i + 1; j < ids.length; j++) {
+      var swapped = applyTrade(assignment, ids[i], ids[j]);
+      var s = scoreAssignment(swapped, people, chores);
+      if (s > base + 0.001 && (!best || s - base > best.gain + 0.001)) {
+        best = { choreA: ids[i], choreB: ids[j], gain: s - base, score: s };
+      }
+    }
+  }
+  return best;
+}
+
+/** Append a log entry (done | skip | cover) and return the new array */
+function addLogEntry(log, entry) {
+  return log.concat([Object.assign({ id: makeId('lg'), date: todayStr() }, entry)]);
+}
+
+/**
+ * Weekly review per person. Skips, covers, trades, done counts.
+ * People who cover get `done` credit for the chore they covered.
+ */
+function computeReview(log, weekIndex, people, chores) {
+  var stats = {};
+  people.forEach(function (p) {
+    stats[p.id] = { name: p.name, done: 0, skips: 0, covers: 0, coveredFor: [], trades: 0, yesterdayTrades: 0 };
+  });
+  var open = {};
+  log.forEach(function (e) {
+    if (e.weekIndex !== weekIndex) return;
+    if (e.type === 'done' && stats[e.personId]) stats[e.personId].done++;
+    if (e.type === 'skip' && stats[e.personId]) {
+      stats[e.personId].skips++;
+      open[e.id] = e.choreId;
+    }
+    if (e.type === 'cover' && stats[e.personId]) {
+      stats[e.personId].covers++;
+      stats[e.personId].done++;
+      var target = e.coveredFor || e.skipPersonId;
+      if (target && stats[e.personId]) stats[e.personId].coveredFor.push(target);
+      delete open[e.skipEntryId];
+    }
+    if (e.type === 'trade') {
+      if (stats[e.personA]) { stats[e.personA].trades++; if (e.tradedYesterday) stats[e.personA].yesterdayTrades++; }
+      if (stats[e.personB]) { stats[e.personB].trades++; if (e.tradedYesterday) stats[e.personB].yesterdayTrades++; }
+    }
+  });
+  var heroes = Object.keys(stats)
+    .map(function (id) { var s = stats[id]; s.id = id; return s; })
+    .filter(function (s) { return s.covers > 0; })
+    .sort(function (a, b) { return b.covers - a.covers; });
+  var openSkips = Object.keys(open).map(function (skipId) {
+    var e = log.find(function (x) { return x.id === skipId; });
+    return { id: skipId, personId: e ? e.personId : null, choreId: open[skipId], date: e ? e.date : null, note: e ? e.note : '' };
+  });
+  return { stats: stats, heroes: heroes, openSkips: openSkips };
+}
+/*__CORE_END__*/
+
+/* ============================================================
+ * App state (localStorage) — not part of the tested core.
+ * ============================================================ */
+var STORAGE_KEY = 'hcr.state.v1';
+var state = null;
+
+function defaultState() {
+  var p1 = { id: 'p_sam', name: 'Sam', skills: {} };
+  var p2 = { id: 'p_alex', name: 'Alex', skills: {} };
+  var p3 = { id: 'p_jordan', name: 'Jordan', skills: {} };
+  var c1 = { id: 'c_dishes', name: 'Dishes', weight: 2, repeat: 1 };
+  var c2 = { id: 'c_trash', name: 'Kitchen trash', weight: 2, repeat: 1 };
+  var c3 = { id: 'c_bins', name: 'Recycling & bins', weight: 1, repeat: 1 };
+  var c4 = { id: 'c_bathroom', name: 'Bathroom', weight: 3, repeat: 1 };
+  var c5 = { id: 'c_floors', name: 'Floors', weight: 2, repeat: 1 };
+  p1.skills = { c_dishes: -2, c_trash: 1, c_bins: 0, c_bathroom: 1, c_floors: 0 };
+  p2.skills = { c_dishes: 2, c_trash: -1, c_bins: 1, c_bathroom: -1, c_floors: 1 };
+  p3.skills = { c_dishes: 1, c_trash: 0, c_bins: 2, c_bathroom: 0, c_floors: -1 };
+  return {
+    people: [p1, p2, p3],
+    chores: [c1, c2, c3, c4, c5],
+    wheel: [p1.id, p2.id, p3.id],
+    mode: 'rotation',
+    weekIndex: 0,
+    weekStart: todayStr(),
+    log: [],
+    overrides: {},
+    notes: {},
+    seeded: true
+  };
+}
+
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* file:// or private mode */ }
+}
+function loadState() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) { state = JSON.parse(raw); return true; }
+  } catch (e) { /* ignore */ }
+  state = defaultState();
+  saveState();
+  return false;
+}
+
+/* ---------- helpers over state ---------- */
+function personById(id) {
+  return state.people.find(function (p) { return p.id === id; }) || { id: id, name: '(gone)', skills: {} };
+}
+function choreById(id) {
+  return state.chores.find(function (c) { return c.id === id; }) || null;
+}
+function activeChores() {
+  return state.chores.filter(function (c) { return mod(state.weekIndex, c.repeat || 1) === 0; });
+}
+function baseAssignment() {
+  var chores = activeChores().map(function (c) { return c.id; });
+  var base = state.mode === 'strengths'
+    ? strengthsAssignment(state.wheel, state.people, activeChores(), state.weekIndex, state.log)
+    : rotationAssignment(state.wheel, chores, state.weekIndex);
+  var prefix = 'w' + state.weekIndex + ':';
+  var merged = {};
+  chores.forEach(function (cid) {
+    var ov = state.overrides[prefix + cid];
+    merged[cid] = (ov && state.wheel.indexOf(ov) !== -1) ? ov : base[cid];
+  });
+  return merged;
+}
+var currentAssignment = {};
+
+/* ---------- UI plumbing ---------- */
+function $(id) { return document.getElementById(id); }
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+function toast(msg) {
+  var t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._h);
+  t._h = setTimeout(function () { t.classList.remove('show'); }, 2600);
+}
+
+/* ---------- Tabs ---------- */
+Array.prototype.forEach.call(document.querySelectorAll('nav.tabs button'), function (btn) {
+  btn.addEventListener('click', function () {
+    document.querySelectorAll('nav.tabs button').forEach(function (b) { b.classList.remove('active'); });
+    document.querySelectorAll('section.page').forEach(function (s) { s.classList.remove('active'); });
+    btn.classList.add('active');
+    $('page-' + btn.dataset.page).classList.add('active');
+    render();
+  });
+});
+
+/* ---------- Week header ---------- */
+function updateWeekHeader() {
+  $('week-number').textContent = state.weekIndex;
+  $('week-dates').textContent = weekLabel(state.weekIndex, state.weekStart) + ' \u2022 mode: ' +
+    (state.mode === 'strengths' ? 'strengths-informed' : 'pure rotation');
+  var sk = computeReview(state.log, state.weekIndex, state.people, activeChores());
+  $('week-banner').innerHTML =
+    'Everything marked this week: ' + '<b>' + (activeChores().length - sk.openSkips.length) + ' active</b>' +
+    (sk.openSkips.length ? ' \u2022 ' + sk.openSkips.length + ' skip(s) waiting to be covered \u2014 ' : ' \u2014 ') +
+    'no shame, only greens.';
+}
+
+/* ---------- This week ---------- */
+function appNameForChore(id) {
+  return choreById(id) ? choreById(id).name : '(gone)';
+}
+function renderWeek() {
+  currentAssignment = baseAssignment();
+  var wrap = $('week-chores');
+  wrap.innerHTML = '';
+  activeChores().forEach(function (chore) {
+    var pid = currentAssignment[chore.id];
+    var person = personById(pid);
+    var done = isWeekDone(chore.id);
+    var card = document.createElement('div');
+    card.className = 'chore-card' + (done ? ' done' : '');
+    var skill = skillScore(person, chore.id);
+    var skillLabel = skill <= -2 ? 'not their thing' : skill === -1 ? 'stretches them' :
+      skill === 0 ? 'neutral' : skill === 1 ? 'fairly good' : 'their strength';
+    var skillClass = skill <= -2 ? 'skill-2' : skill === -1 ? 'skill-1' : skill === 1 ? 'skill1' : skill === 2 ? 'skill2' : '';
+    card.innerHTML =
+      '<div class="kind">effort ' + chore.weight + '</div>' +
+      '<div class="who">' + esc(chore.name) + '</div>' +
+      '<span class="pill">' + esc(person.name) + '</span> ' +
+      '<span class="pill ' + skillClass + '">' + skillLabel + '</span> ' +
+      (done ? '<span class="pill" style="color:var(--good);border-color:#3d5c3d">&#10003; done</span>' : '') +
+      '<div class="row" style="margin-top:8px">' +
+      '<select class="btn tiny" data-override-for="' + chore.id + '">' +
+      state.wheel.map(function (w) {
+        return '<option value="' + esc(w) + '"' + (w === pid ? ' selected' : '') + '>' + esc(personById(w).name) + '</option>';
+      }).join('') + '</select>' +
+      (done ? '' : '<button class="btn praise" data-done="' + chore.id + '">&#10003; Done!</button>') +
+      (done ? '' : '<button class="btn danger-soft" data-skip="' + chore.id + '">Skip (no shame)</button>') +
+      '</div>';
+    wrap.appendChild(card);
+  });
+  wrap.querySelectorAll('select[data-override-for]').forEach(function (sel) {
+    sel.addEventListener('change', function () {
+      state.overrides['w' + state.weekIndex + ':' + sel.dataset.overrideFor] = sel.value;
+      saveState(); render();
+    });
+  });
+  wrap.querySelectorAll('button[data-done]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var cid = btn.dataset.done;
+      state.log = addLogEntry(state.log, {
+        type: 'done', personId: currentAssignment[cid], choreId: cid, weekIndex: state.weekIndex
+      });
+      saveState(); render();
+      toast('Nice one, ' + personById(currentAssignment[cid]).name + '! \u2728');
+    });
+  });
+  wrap.querySelectorAll('button[data-skip]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var cid = btn.dataset.skip;
+      state.log = addLogEntry(state.log, {
+        type: 'skip', personId: currentAssignment[cid], choreId: cid, weekIndex: state.weekIndex, note: ''
+      });
+      saveState(); render();
+      toast('Logged gently. Someone can cover on the Skip Log tab.');
+    });
+  });
+
+  // trade selects
+  var ids = activeChores().map(function (c) { return c.id; });
+  var fill = function (sel) {
+    sel.innerHTML = ids.map(function (cid) {
+      return '<option value="' + cid + '">' + esc(appNameForChore(cid)) + ' \u2014 ' + esc(personById(currentAssignment[cid]).name) + '</option>';
+    }).join('');
+  };
+  fill($('trade-chore-a'));
+  fill($('trade-chore-b'));
+  if (ids.length > 1) { $('trade-chore-b').selectedIndex = 1; }
+  var th = $('trade-history');
+  var trades = state.log.filter(function (e) { return e.type === 'trade' && e.weekIndex === state.weekIndex; });
+  th.innerHTML = trades.length
+    ? '<ul class="plain">' + trades.map(function (t) {
+        return '<li>&#128260; ' + esc(personById(t.personA).name) + ' \u2194 ' + esc(personById(t.personB).name) +
+          ': <strong>' + esc(appNameForChore(t.choreIdA)) + '</strong> for <strong>' + esc(appNameForChore(t.choreIdB)) + '</strong>' +
+          (t.tradedYesterday ? ' <em>(traded yesterday \u2764)</em>' : '') +
+          ' <button class="btn tiny" data-untrade="' + t.id + '">undo</button></li>';
+      }).join('') + '</ul>'
+    : '<p class="small muted">No trades logged this week yet.</p>';
+  th.querySelectorAll('[data-untrade]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      state.log = state.log.filter(function (e) { return e.id !== b.dataset.untrade; });
+      saveState(); render();
+    });
+  });
+  updateWeekHeader();
+}
+function isWeekDone(cid) {
+  return state.log.some(function (e) {
+    return e.weekIndex === state.weekIndex && e.type === 'done' && e.choreId === cid;
+  });
+}
+
+$('btn-prev-week').addEventListener('click', function () { state.weekIndex--; saveState(); render(); });
+$('btn-next-week').addEventListener('click', function () { state.weekIndex++; saveState(); render(); });
+
+$('btn-suggest-tweaks').addEventListener('click', function () {
+  var chores = activeChores();
+  var a = baseAssignment();
+  var applied = 0;
+  for (var guard = 0; guard < 8; guard++) {
+    var s = bestSkillSwap(a, state.people, chores);
+    if (!s) break;
+    a = applyTrade(a, s.choreA, s.choreB);
+    applied++;
+  }
+  if (!applied) {
+    toast('This week\u2019s assignment already fits everyone\u2019s strengths \u2014 no tweaks needed.');
+    return;
+  }
+  var prefix = 'w' + state.weekIndex + ':';
+  Object.keys(a).forEach(function (cid) {
+    state.overrides[prefix + cid] = a[cid];
+  });
+  saveState(); render();
+  toast('Suggested ' + applied + ' strengths-based tweak(s). Adjust freely!');
+});
+
+$('btn-trade').addEventListener('click', function () {
+  var A = $('trade-chore-a').value, B = $('trade-chore-b').value;
+  if (!A || !B || A === B) { toast('Pick two different chores to trade.'); return; }
+  var a = baseAssignment();
+  var swapped = applyTrade(a, A, B);
+  var prefix = 'w' + state.weekIndex + ':';
+  state.overrides[prefix + A] = swapped[A];
+  state.overrides[prefix + B] = swapped[B];
+  state.log = addLogEntry(state.log, makeTradeEntry(
+    A, B, a[A], a[B], state.weekIndex, todayStr(), $('trade-yesterday').checked
+  ));
+  $('trade-yesterday').checked = false;
+  saveState(); render();
+  toast('Swap logged. Review will remember it! \u2764');
+});
+
+/* ---------- Wheel ---------- */
+function renderWheel() {
+  var svg = $('wheel-svg');
+  var n = state.wheel.length;
+  var cx = 220, cy = 220, r = 150;
+  var parts = [];
+  parts.push('<circle cx="' + cx + '" cy="' + cy + '" r="' + (r - 12) + '" fill="none" stroke="var(--border)" stroke-width="2" stroke-dasharray="6 7"/>');
+  parts.push('<text x="' + cx + '" y="' + (cy + 5) + '" fill="var(--muted)" font-size="13" text-anchor="middle">rotate</text>');
+  var dir = null;
+  for (var i = 0; i < n; i++) {
+    var ang = (Math.PI * 2 * i) / n - Math.PI / 2;
+    var x = cx + r * Math.cos(ang), y = cy + r * Math.sin(ang);
+    parts.push('<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="34" fill="var(--panel2)" stroke="var(--accent)"/>');
+    parts.push('<text x="' + x.toFixed(1) + '" y="' + (y + 5).toFixed(1) + '" fill="var(--text)" font-size="13" text-anchor="middle" font-weight="600">' + esc(personById(state.wheel[i]).name.slice(0, 8)) + '</text>');
+    if (n > 1) {
+      var ang2 = (Math.PI * 2 * ((i + 1) % n)) / n - Math.PI / 2;
+      var x2 = cx + r * Math.cos(ang2), y2 = cy + r * Math.sin(ang2);
+      parts.push('<line x1="' + x.toFixed(1) + '" y1="' + y.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) +
+        '" stroke="var(--accent2)" stroke-width="2" marker-end="url(#arrow)" opacity="0.7"/>');
+    }
+  }
+  parts.push('<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent2)"/></marker></defs>');
+  svg.innerHTML = parts.join('');
+  var names = state.wheel.map(function (id) { return personById(id).name; });
+  $('wheel-order-label').textContent = n ? names.join(' \u2192 ') + ' \u2192 ' + names[0] : 'wheel is empty';
+  $('mode-strengths').checked = state.mode === 'strengths';
+
+  // next week preview
+  var ids = activeChores().map(function (c) { return c.id; });
+  var next = state.mode === 'strengths'
+    ? strengthsAssignment(state.wheel, state.people, activeChores(), state.weekIndex + 1, state.log)
+    : rotationAssignment(state.wheel, ids, state.weekIndex + 1);
+  $('next-week-preview').innerHTML = '<ul class="plain">' + activeChores().map(function (c) {
+    return '<li>' + esc(c.name) + ' \u2192 <strong>' + esc(personById(next[c.id]).name) + '</strong></li>';
+  }).join('') + '</ul>';
+
+  $('btn-wheel-add').disabled = n >= 12;
+  $('btn-wheel-remove').disabled = n <= 1;
+}
+$('btn-wheel-add').addEventListener('click', function () {
+  if (!state.people.length) { toast('Add a person first (People & Strengths).'); return; }
+  var candidates = state.people.filter(function (p) { return state.wheel.indexOf(p.id) === -1; });
+  var pick = candidates[0] || state.people[state.wheel.length % state.people.length];
+  if (!pick) { toast('No people yet.'); return; }
+  state.wheel.push(pick.id);
+  saveState(); render();
+  toast(pick.name + ' joined the wheel.');
+});
+$('btn-wheel-remove').addEventListener('click', function () {
+  if (state.wheel.length <= 1) return;
+  state.wheel.pop();
+  saveState(); render();
+});
+$('mode-strengths').addEventListener('change', function () {
+  state.mode = this.checked ? 'strengths' : 'rotation';
+  saveState(); render();
+});
+
+/* ---------- People & strengths ---------- */
+var SKILL_WORDS = { '-2': 'Avoid \ud83d\udeab', '-1': 'Stretch', '0': 'Neutral', '1': 'Good', '2': 'Great' };
+function renderPeople() {
+  var wrap = $('people-list');
+  wrap.innerHTML = state.people.map(function (p) {
+    return '<div class="card" style="background:var(--panel2);margin-top:10px">' +
+      '<div class="flex-between"><strong style="font-size:1.05rem">' + esc(p.name) + '</strong>' +
+      '<button class="btn tiny danger-soft" data-del-person="' + p.id + '">remove</button></div>' +
+      '<div class="kind" style="margin:8px 0 4px">strengths per chore</div>' +
+      '<div class="row">' + state.chores.map(function (c) {
+        var v = (p.skills && typeof p.skills[c.id] === 'number') ? p.skills[c.id] : 0;
+        return '<label class="small">' + esc(c.name) + '<br><select data-skill="' + p.id + '|' + c.id + '">' +
+          [-2, -1, 0, 1, 2].map(function (s) {
+            return '<option value="' + s + '"' + (s === v ? ' selected' : '') + '>' + (s > 0 ? '+' : '') + s + ' ' + SKILL_WORDS[s] + '</option>';
+          }).join('') + '</select></label>';
+      }).join('') + '</div></div>';
+  }).join('') || '<p class="small muted">No people yet \u2014 add your first housemate above.</p>';
+  wrap.querySelectorAll('select[data-skill]').forEach(function (sel) {
+    sel.addEventListener('change', function () {
+      var parts = sel.dataset.skill.split('|');
+      var p = state.people.find(function (x) { return x.id === parts[0]; });
+      if (p) {
+        p.skills = p.skills || {};
+        p.skills[parts[1]] = parseInt(sel.value, 10);
+        saveState();
+      }
+    });
+  });
+  wrap.querySelectorAll('[data-del-person]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (!confirm('Remove ' + personById(b.dataset.delPerson).name + ' from the household?')) return;
+      state.people = state.people.filter(function (p) { return p.id !== b.dataset.delPerson; });
+      state.wheel = state.wheel.filter(function (w) { return w !== b.dataset.delPerson; });
+      if (!state.wheel.length && state.people.length) state.wheel = [state.people[0].id];
+      saveState(); render();
+    });
+  });
+  var cl = $('chores-list');
+  cl.innerHTML = state.chores.map(function (c) {
+    return '<li><div class="flex-between"><span><strong>' + esc(c.name) + '</strong> ' +
+      '<span class="pill">effort ' + c.weight + '</span> ' +
+      '<span class="pill">every ' + (c.repeat || 1) + ' week(s)</span></span>' +
+      '<span class="row"><button class="btn tiny" data-edit-chore="' + c.id + '">edit</button>' +
+      '<button class="btn tiny danger-soft" data-del-chore="' + c.id + '">remove</button></span></div></li>';
+  }).join('') || '<li class="small muted">No chores yet \u2014 add one above.</li>';
+  cl.querySelectorAll('[data-del-chore]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      state.chores = state.chores.filter(function (c) { return c.id !== b.dataset.delChore; });
+      state.people.forEach(function (p) { delete p.skills[b.dataset.delChore]; });
+      saveState(); render();
+    });
+  });
+  cl.querySelectorAll('[data-edit-chore]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var c = choreById(b.dataset.editChore);
+      if (!c) return;
+      var name = prompt('Chore name:', c.name); if (name === null) return;
+      var w = prompt('Effort 1-3:', c.weight); if (w === null) return;
+      var rep = prompt('Repeat every N weeks (1-4):', c.repeat || 1); if (rep === null) return;
+      c.name = name.trim() || c.name;
+      c.weight = Math.min(3, Math.max(1, parseInt(w, 10) || 1));
+      c.repeat = Math.min(4, Math.max(1, parseInt(rep, 10) || 1));
+      saveState(); render();
+    });
+  });
+}
+$('btn-add-person').addEventListener('click', function () {
+  var name = $('new-person-name').value.trim();
+  if (!name) { toast('Give them a name first.'); return; }
+  var p = { id: makeId('p'), name: name, skills: {} };
+  state.people.push(p);
+  if (state.wheel.indexOf(p.id) === -1) state.wheel.push(p.id);
+  $('new-person-name').value = '';
+  saveState(); render();
+  toast('Welcome, ' + name + '! Rate their strengths below.');
+});
+$('btn-add-chore').addEventListener('click', function () {
+  var name = $('new-chore-name').value.trim();
+  if (!name) { toast('Name the chore first.'); return; }
+  state.chores.push({
+    id: makeId('c'),
+    name: name,
+    weight: parseInt($('new-chore-weight').value, 10) || 2,
+    repeat: parseInt($('new-chore-repeat').value, 10) || 1
+  });
+  $('new-chore-name').value = '';
+  saveState(); render();
+});
+
+/* ---------- Skip log ---------- */
+function renderSkipLog() {
+  var sp = $('skip-person');
+  var sc = $('skip-chore');
+  sp.innerHTML = state.wheel.map(function (id) { return '<option value="' + id + '">' + esc(personById(id).name) + '</option>'; }).join('');
+  sc.innerHTML = activeChores().map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + '</option>'; }).join('');
+
+  var weekSkips = state.log.filter(function (e) { return e.type === 'skip' && e.weekIndex === state.weekIndex; });
+  var covered = {};
+  weekSkips.forEach(function (s) {
+    var cov = state.log.find(function (e) { return e.type === 'cover' && e.skipEntryId === s.id; });
+    if (cov) covered[s.id] = cov;
+  });
+  var open = weekSkips.filter(function (s) { return !covered[s.id]; });
+  $('open-skips').innerHTML = open.length
+    ? '<ul class="plain">' + open.map(function (s) {
+        return '<li class="log-entry"><div class="flex-between"><span>' +
+          esc(personById(s.personId).name) + ' skipped <strong>' + esc(appNameForChore(s.choreId)) + '</strong>' +
+          (s.note ? ' <em>&#8220;' + esc(s.note) + '&#8221;</em>' : '') +
+          ' <span class="pill">' + esc(s.date) + '</span></span>' +
+          '<span class="row"><select data-cover-for="' + s.id + '">' +
+          state.wheel.map(function (id) { return '<option value="' + id + '">' + esc(personById(id).name) + '</option>'; }).join('') +
+          '</select><button class="btn tiny praise" data-cover="' + s.id + '">&#128150; they covered it</button></span></div></li>';
+      }).join('') + '</ul>'
+    : '<p class="small muted" style="margin:6px 0">No open skips this week. Beautiful.</p>';
+  $('open-skips').querySelectorAll('[data-cover]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var coverPerson = $('open-skips').querySelector('select[data-cover-for="' + b.dataset.cover + '"]').value;
+      var skipEntry = state.log.find(function (e) { return e.id === b.dataset.cover; });
+      state.log = addLogEntry(state.log, {
+        type: 'cover', personId: coverPerson, choreId: skipEntry ? skipEntry.choreId : '', weekIndex: state.weekIndex,
+        skipEntryId: b.dataset.cover,
+        coveredFor: skipEntry ? skipEntry.personId : ''
+      });
+      saveState(); render();
+      toast(personById(coverPerson).name + ' quietly covered \u2014 say thank you tonight!');
+    });
+  });
+
+  var review = computeReview(state.log, state.weekIndex, state.people, activeChores());
+  var heroes = review.heroes;
+  $('cover-list').innerHTML = heroes.length
+    ? '<ul class="plain">' + heroes.map(function (h) {
+        var whom = h.coveredFor.map(function (id) { return esc(personById(id).name); }).join(', ');
+        return '<li>' + esc(h.name) + ' covered <strong>' + h.covers + '</strong> skip(s)' + (whom ? ' (for ' + whom + ')' : '') + ' \u2764</li>';
+      }).join('') + '</ul>'
+    : '<p class="small muted" style="margin:6px 0">No covers needed yet.</p>';
+}
+$('btn-log-skip').addEventListener('click', function () {
+  var pid = $('skip-person').value;
+  var cid = $('skip-chore').value;
+  if (!pid || !cid) { toast('Pick a person and a chore.'); return; }
+  state.log = addLogEntry(state.log, {
+    type: 'skip', personId: pid, choreId: cid, weekIndex: state.weekIndex,
+    note: $('skip-note').value.trim().slice(0, 80)
+  });
+  $('skip-note').value = '';
+  saveState(); render();
+  toast('Logged with care. Rest is allowed. \ud83c\udf3f');
+});
+
+/* ---------- Review ---------- */
+function renderReview() {
+  var sel = $('review-week');
+  if (sel.dataset.value !== String(state.weekIndex)) {
+    var idx = state.weekIndex;
+    var html = '';
+    for (var w = Math.max(0, idx - 5); w <= idx + 1; w++) {
+      html += '<option value="' + w + '"' + (w === idx ? ' selected' : '') + '>Week ' + w + ' (' + esc(weekLabel(w, state.weekStart)) + ')</option>';
+    }
+    sel.innerHTML = html;
+    sel.dataset.value = String(idx);
+  }
+  var weekIdx = parseInt(sel.value, 10);
+  var review = computeReview(state.log, weekIdx, state.people, state.chores);
+  var rows = '<tr><th>Person</th><th class="num">Done</th><th class="num">Skips</th><th class="num">Covered</th><th class="num">Trades</th></tr>';
+  state.people.forEach(function (p) {
+    var s = review.stats[p.id] || { done: 0, skips: 0, covers: 0, trades: 0 };
+    rows += '<tr><td>' + esc(p.name) + '</td><td class="num">' + s.done + '</td><td class="num">' + s.skips +
+      '</td><td class="num">' + s.covers + '</td><td class="num">' + s.trades + '</td></tr>';
+  });
+  $('review-table').innerHTML = rows;
+  $('review-heroes').innerHTML = review.heroes.length
+    ? review.heroes.map(function (h) {
+        return '<div class="log-entry">&#128155; <strong>' + esc(h.name) + '</strong> covered ' + h.covers + ' chore(s) this week \u2014 ' +
+          'maybe hand them their favourite next week?</div>';
+      }).join('')
+    : '<p class="small muted">No quiet heroes this week (and that\u2019s fine \u2014 it means no skips needed covering).</p>';
+  $('review-notes').value = state.notes['w' + weekIdx] || '';
+  $('roll-hint').textContent = 'Rolling advances the wheel to week ' + (state.weekIndex + 1) +
+    ' (' + weekLabel(state.weekIndex + 1, state.weekStart) + ').';
+}
+$('review-week').addEventListener('change', function () {
+  this.dataset.value = this.value;
+  renderReview();
+});
+$('btn-save-notes').addEventListener('click', function () {
+  state.notes['w' + parseInt($('review-week').value, 10)] = $('review-notes').value.slice(0, 500);
+  saveState();
+  toast('Note saved for that week.');
+});
+$('btn-roll-week').addEventListener('click', function () {
+  state.weekIndex++;
+  saveState(); render();
+  toast('New week \u2014 week ' + state.weekIndex + '. Fresh start!');
+});
+
+/* ---------- Setup / backup ---------- */
+$('btn-export').addEventListener('click', function () {
+  try {
+    var blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'chore-rotation-backup-' + todayStr() + '.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch (e) { toast('Export failed in this browser.'); }
+});
+$('import-file').addEventListener('change', function () {
+  var f = this.files[0];
+  if (!f) return;
+  var r = new FileReader();
+  r.onload = function () {
+    try {
+      var s = JSON.parse(r.result);
+      if (!s.people || !s.wheel) throw new Error('bad shape');
+      state = s;
+      saveState(); render();
+      toast('Backup restored.');
+    } catch (e) { toast('That file doesn\u2019t look like a backup.'); }
+  };
+  r.readAsText(f);
+  this.value = '';
+});
+$('btn-reset').addEventListener('click', function () {
+  if (!confirm('Reset everything back to the sample household? This cannot be undone.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  state = defaultState();
+  saveState(); render();
+  toast('Fresh start!');
+});
+
+/* ---------- Render loop ---------- */
+function render() {
+  renderWeek();
+  renderWheel();
+  renderPeople();
+  renderSkipLog();
+  renderReview();
+  $('storage-info').textContent = 'Saved locally: ' + state.log.length + ' log entries, ' +
+    state.people.length + ' people, ' + state.chores.length + ' chores. Mode: ' + state.mode + '.';
+}
+loadState();
+render();
+</script>
+</body>
+</html>
